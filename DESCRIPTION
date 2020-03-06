@@ -15,7 +15,7 @@ Depends:
     BiocParallel,
     data.table,
     Rsamtools,
-    SummarizedExperiment (<1.17.2)
+    SummarizedExperiment (<=1.17.1)
 Imports:
     AnnotationDbi,
     BBmisc,
