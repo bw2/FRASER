@@ -15,9 +15,9 @@ addons:
       - libmagick++-dev
 
 r:
-  - bioc-devel
-#  - bioc-release
-#  - 4.0.0
+#  - bioc-devel
+  - bioc-release
+  - 3.6.0
 
 stages:
   - Setup Cache
@@ -26,17 +26,15 @@ stages:
 # setup cache first
 jobs:
   include:
+#    - stage: Setup Cache
+#      r: bioc-devel
+#      script: true
     - stage: Setup Cache
-      r: bioc-devel
+      r: bioc-release
       script: true
-    - stage: Test
-      r: bioc-devel
-#    - stage: Setup Cache
-#      r: bioc-release
-#      script: true
-#    - stage: Setup Cache
-#      r: 4.0.0
-#      script: true
+    - stage: Setup Cache
+      r: 3.6.0
+      script: true
 
 before_install:
   - tlmgr install index marginfix bera nowidow parnotes

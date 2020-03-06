@@ -387,14 +387,14 @@ setMethod("assayNames", "FraseRDataSet", function(x) {
 #'
 #' @return (Delayed) matrix.
 #' @export
-setMethod("assays", "FraseRDataSet", function(x, withDimnames=TRUE, ...){
+setMethod("assays", "FraseRDataSet", function(x, ..., withDimnames=TRUE){
     return(c(
         assays(asSE(x), withDimnames=withDimnames, ...),
         assays(nonSplicedReads(x), withDimnames=withDimnames, ...)
     ))
 })
 FraseRDataSet.assays.replace <-
-            function(x, withDimnames=TRUE, HDF5=TRUE, type=NULL, ..., value){
+            function(x, ..., HDF5=TRUE, type=NULL, withDimnames=TRUE, value){
     if(any(names(value) == "")) stop("Name of an assay can not be empty!")
     if(any(duplicated(names(value)))) stop("Assay names need to be unique!")
     if(is.null(type)){
