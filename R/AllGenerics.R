@@ -403,7 +403,9 @@ FraseRDataSet.assays.replace <-
     # make sure all slots are HDF5
     if(isTRUE(HDF5)){
         for(i in seq_along(value)){
-            if(!class(value[[i]]) %in% c("HDF5Matrix", "DelayedMatrix")){
+            if(!class(value[[i]]) %in% c("HDF5Matrix", "DelayedMatrix") ||
+                tryCatch(!is.character(path(psi5)), error=function(e){TRUE})){
+                
                 aname <- names(value)[i]
                 h5obj <- saveAsHDF5(x, aname, object=value[[i]])
                 value[[i]] <- h5obj
@@ -852,7 +854,7 @@ mapSeqlevels <- function(fds, style="UCSC", ...){
 #' @rdname results
 #' @export
 aberrant <- function(fds, type=currentType(fds), padjCutoff=0.05,
-                    deltaPsiCutoff=0.3, zScoreCutoff=NA, minCoverage=5,
+                    deltaPsiCutoff=0.3, zScoreCutoff=NA, minCount=5,
                     by=c("none", "sample", "feature"), aggregate=FALSE, ...){
 
     checkNaAndRange(zScoreCutoff,   min=0, max=Inf, na.ok=TRUE)
@@ -894,8 +896,8 @@ aberrant <- function(fds, type=currentType(fds), padjCutoff=0.05,
     }
     
     # check each cutoff if in use (not NA)
-    if(!is.na(minCoverage)){
-        goodCutoff <- goodCutoff & as.matrix(n >= minCoverage)
+    if(!is.na(minCount)){
+        goodCutoff <- goodCutoff & as.matrix(n >= minCount)
     }
     if(!is.na(zScoreCutoff)){
         goodCutoff <- goodCutoff & as.matrix(abs(zscores) > zScoreCutoff)

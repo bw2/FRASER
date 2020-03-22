@@ -149,6 +149,10 @@ saveFraseRDataSet <- function(fds, dir=NULL, name=NULL, rewrite=FALSE) {
 #' @noRd
 saveAsHDF5 <- function(fds, name, object=NULL, rewrite=FALSE){
     if(is.null(object)) object <- assay(fds, name)
+    
+    if(isTRUE(dontWriteHDF5(fds))){
+        return(as.matrix(object))
+    }
 
     # get defind chunk sizes
     chunkDims <- c(
@@ -166,7 +170,8 @@ saveAsHDF5 <- function(fds, name, object=NULL, rewrite=FALSE){
     if(file.exists(h5FileTmp)) unlink(h5FileTmp)
 
     # dont rewrite it if already there
-    if(!rewrite && "DelayedMatrix" %in% is(object) && path(object) == h5File){
+    if(!rewrite && "DelayedMatrix" %in% is(object) && 
+            tryCatch(path(object) == h5File, error=function(e){FALSE})){
         return(object)
     }
 
@@ -174,8 +179,12 @@ saveAsHDF5 <- function(fds, name, object=NULL, rewrite=FALSE){
     if(verbose(fds) > 2) {
         message(date(), ": Preparing data for HDF5 conversion: ", name)
     }
-    aMat <- as.matrix(object)
-    #aMat <- as(object, "matrix") # this command breaks the code in some cases
+    # aMat <- ifelse(!is(object, "DelayedMatrix"), as.matrix(object), object)
+    if(is(object, "DelayedMatrix")){
+        aMat <- object
+    } else{
+        aMat <- as.matrix(object)
+    }
     if(verbose(fds) > 1) {
         message(date(), ": Writing data: ", name, " to file: ", h5File)
     }
@@ -185,7 +194,8 @@ saveAsHDF5 <- function(fds, name, object=NULL, rewrite=FALSE){
     # override old h5 file if present and move tmp to correct place
     if(file.exists(h5File)) unlink(h5File)
     renameFile(h5FileTmp, h5File)
-    path(h5) <- h5File
+    # path(h5) <- h5File
+    h5 <- HDF5Array(h5File, name)
 
     return(h5)
 }

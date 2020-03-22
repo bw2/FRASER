@@ -106,7 +106,13 @@
 #'
 #' \code{plotFilterExpression}: The distribution of FPKM values. If the 
 #' FraseRDataSet object contains the \code{passedFilter} column, it will plot 
-#' both FPKM distributions for the expressed genes and for the filtered genes.
+#' both FPKM distributions for the expressed introns and for the filtered 
+#' introns.
+#' 
+#' \code{plotFilterVariability}: The distribution of maximal delta Psi values. 
+#' If the FraseRDataSet object contains the \code{passedFilter} column, 
+#' it will plot both maximal delta Psi distributions for the variable 
+#' introns and for the filtered (i.e. non-variable) introns.
 #'
 #' \code{plotEncDimSearch}: Visualization of the hyperparameter optimization.
 #' It plots the encoding dimension against the achieved loss (area under the
@@ -153,7 +159,7 @@ plotVolcano <- function(fds, sampleID, type=c("psi3", "psi5", "psiSite"),
                     basePlot=TRUE, aggregate=FALSE,
                     main=NULL,
                     deltaPsiCutoff=0.3, padjCutoff=0.1, ...){
-  
+    
     type <- match.arg(type)
 
     dt <- getPlottingDT(fds, axis="col", type=type, idx=sampleID,
@@ -169,7 +175,9 @@ plotVolcano <- function(fds, sampleID, type=c("psi3", "psi5", "psiSite"),
             "delta Psi: ", round(deltaPsi, 2), "<br>",
             "Type: ", type))) +
         geom_point(aes(alpha=ifelse(aberrant == TRUE, 1, 0.8))) +
-        xlab(as.expression(bquote(paste(Delta, .(ggplotLabelPsi(type)[[1]]))))) +
+        xlab(as.expression(
+                bquote(paste(Delta, .(ggplotLabelPsi(type)[[1]]) ))
+            )) +
         ylab(expression(paste(-log[10], "(P value)"))) +
         theme_bw() +
         theme(legend.position="none") +
@@ -365,8 +373,8 @@ plotExpectedVsObservedPsi <- function(fds, type=c("psi5", "psi3", "psiSite"),
         ylab <- bquote("Observed " ~ .(ggplotLabelPsi(type)[[1]]))
         xlab <- bquote("Predicted " ~ .(ggplotLabelPsi(type)[[1]]))
     } else{
-      ylab <- paste("Observed", ggplotLabelPsi(type, asCharacter=TRUE)[[1]])
-      xlab <- paste("Predicted", ggplotLabelPsi(type, asCharacter=TRUE)[[1]])
+        ylab <- paste("Observed", ggplotLabelPsi(type, asCharacter=TRUE)[[1]])
+        xlab <- paste("Predicted", ggplotLabelPsi(type, asCharacter=TRUE)[[1]])
     }
     
     g <- ggplot(dt, aes(y=obsPsi, x=predPsi)) +
@@ -433,8 +441,8 @@ plotQQ <- function(fds, type=NULL, idx=NULL, result=NULL, aggregate=FALSE,
                         " (site ", .(as.character(dt[,unique(idx)])), ")"))))
             } else{
                 main <- paste0(ggplotLabelPsi(type, asCharacter=TRUE)[[1]],
-                               " Q-Q plot: ", featureID, 
-                               " (site ", dt[,unique(idx)], ")")
+                                " Q-Q plot: ", featureID, 
+                                " (site ", dt[,unique(idx)], ")")
             }
         }
     }
@@ -474,12 +482,12 @@ plotQQ <- function(fds, type=NULL, idx=NULL, result=NULL, aggregate=FALSE,
     
     if(isTRUE(basePlot)){
         g <- g +
-          xlab(expression(-log[10]~"(expected P)")) +
-          ylab(expression(-log[10]~"(observed P)"))
+            xlab(expression(-log[10]~"(expected P)")) +
+            ylab(expression(-log[10]~"(observed P)"))
     } else{
         g <- g +
-          xlab("-log[10] (expected P)") +
-          ylab("-log[10] (observed P)")
+            xlab("-log[10] (expected P)") +
+            ylab("-log[10] (observed P)")
     }
 
     # Set color scale for global/local
@@ -579,22 +587,68 @@ plotEncDimSearch <- function(fds, type=c("psi3", "psi5", "psiSite"),
 #' @rdname plotFunctions
 #' @export
 plotFilterExpression <- function(fds, bins=200, legend.position=c(0.8, 0.8)){
+    
+    # get mean count for all junctions in the fds object
     cts    <- K(fds, "psi5")
     rowlgm <- exp(rowMeans(log(cts + 1)))
 
     dt <- data.table(
             value=rowlgm,
             passed=mcols(fds, type="j")[['passed']])
-    colors <- brewer.pal(3, "Dark2")[2:1]
+    dt[,passed:=factor(passed, levels=c(TRUE, FALSE))]
+    
+    colors <- brewer.pal(3, "Dark2")[seq_len(2)]
     ggplot(dt, aes(value, fill=passed)) +
         geom_histogram(bins=bins) +
         scale_x_log10() +
         scale_y_log10() +
         scale_fill_manual(values=colors, name="Passed",
-                labels=c("False", "True")) +
+                labels=c("True", "False")) +
         xlab("Mean Junction Expression") +
         ylab("Count") +
         ggtitle("Expression filtering") +
+        theme_bw() +
+        theme(legend.position=legend.position)
+}
+
+#'
+#' Plot filter variability
+#'
+#' Histogram of minimal delta psi per junction
+#'
+#' @rdname plotFunctions
+#' @export
+plotFilterVariability <- function(fds, bins=200, legend.position=c(0.8, 0.8)){
+    
+    # get plotting data
+    dt <- data.table(
+        value=pmax(mcols(fds, type="j")[['maxDPsi3']], 
+                    mcols(fds, type="j")[['maxDPsi5']]),
+        passed=mcols(fds, type="j")[['passed']])
+    
+    # check if file with removed counts exists and add them when it exists
+    nonVarDir <- file.path(workingDir(fds), "savedObjects", nameNoSpace(fds),
+                            "nonVariableJunctions")
+
+    if(dir.exists(nonVarDir)){
+        nV_stored <- loadHDF5SummarizedExperiment(dir=nonVarDir) 
+        nonVar_dt <- data.table(
+            value=pmax(mcols(nV_stored)[['maxDPsi3']], 
+                        mcols(nV_stored)[['maxDPsi5']]),
+            passed=FALSE)
+        dt <- rbind(dt, nonVar_dt)
+    }
+    
+    dt[,passed:=factor(passed, levels=c(TRUE, FALSE))]
+    colors <- brewer.pal(3, "Dark2")[seq_len(2)]
+    ggplot(dt, aes(value, fill=passed)) +
+        geom_histogram(bins=bins) +
+        scale_y_log10() + 
+        scale_fill_manual(values=colors, name="Passed",
+                            labels=c("True", "False")) +
+        xlab(bquote("Maximal Junction" ~ Delta*Psi[5] ~ "or" ~ Delta*Psi[3])) +
+        ylab("Count") +
+        ggtitle("Variability filtering") +
         theme_bw() +
         theme(legend.position=legend.position)
 }
@@ -814,11 +868,11 @@ ggplotLabelPsi <- function(type, asCharacter=FALSE){
             FUN.VALUE=c(bquote(psi[3])))
     } else{
         vapply(type, FUN=function(x)
-          switch (x,
-                  psi5 = "psi[5]",
-                  psi3 = "psi[3]",
-                  psiSite = "theta"),
-          FUN.VALUE=character(1))
+            switch (x,
+                    psi5 = "psi[5]",
+                    psi3 = "psi[3]",
+                    psiSite = "theta"),
+            FUN.VALUE=character(1))
     }
 }
 
