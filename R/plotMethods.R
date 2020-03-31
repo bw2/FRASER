@@ -594,7 +594,7 @@ plotEncDimSearch <- function(fds, type=c("psi3", "psi5", "psiSite"),
 #' @rdname plotFunctions
 #' @export
 plotFilterExpression <- function(fds, bins=200, legend.position=c(0.8, 0.8),
-                                 onlyVariableIntrons=FALSE){
+                                    onlyVariableIntrons=FALSE){
     
     # check that expression filter has been calculated
     if(!("passedExpression" %in% colnames(mcols(fds, type="j")))){
@@ -636,12 +636,12 @@ plotFilterExpression <- function(fds, bins=200, legend.position=c(0.8, 0.8),
 #' @rdname plotFunctions
 #' @export
 plotFilterVariability <- function(fds, bins=200, legend.position=c(0.8, 0.8),
-                                  onlyExpressedIntrons=FALSE){
+                                    onlyExpressedIntrons=FALSE){
     
     # check that expression filter has been calculated
     if(!("passedVariability" %in% colnames(mcols(fds, type="j")))){
         stop("Please calculate the expression filter values first with the ",
-             "filterExpression function.")
+             "filterVariability function.")
     }
     
     # get plotting data
@@ -663,7 +663,9 @@ plotFilterVariability <- function(fds, bins=200, legend.position=c(0.8, 0.8),
         nV_stored <- loadHDF5SummarizedExperiment(dir=nonVarDir) 
         nonVar_dt <- data.table(
             value=pmax(mcols(nV_stored)[['maxDPsi3']], 
-                        mcols(nV_stored)[['maxDPsi5']]),
+                        mcols(nV_stored)[['maxDPsi5']],
+                        mcols(nV_stored)[['maxDThetaDonor']],
+                        mcols(nV_stored)[['maxDThetaAcceptor']]),
             passed=FALSE)
         dt <- rbind(dt, nonVar_dt)
     }

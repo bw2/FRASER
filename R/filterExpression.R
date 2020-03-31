@@ -192,8 +192,8 @@ filterVariability <- function(fds, minDeltaPsi=0, filter=TRUE,
                 mcols(fds, type="j")$maxDThetaDonor, 
                 mcols(fds, type="j")$maxDThetaAcceptor) >= minDeltaPsi 
     if(any(is.na(mcols(fds, type="j")[['passedVariability']]))){
-       mcols(fds, type="j")$passedVariability[
-           is.na(mcols(fds, type="j")[['passedVariability']])] <- FALSE
+        mcols(fds, type="j")$passedVariability[
+            is.na(mcols(fds, type="j")[['passedVariability']])] <- FALSE
     }
     if("passedExpression" %in% colnames(mcols(fds, type="j"))){
         mcols(fds, type="j")[['passed']] <-  
@@ -318,7 +318,9 @@ applyVariabilityFilters <- function(fds, minDeltaPsi){
                     "cannot be restored.")
             nV_stored <- loadHDF5SummarizedExperiment(dir=nonVarJctsDir) 
             toReport <- mcols(nV_stored)$maxDPsi5 < minDeltaPsi &
-                        mcols(nV_stored)$maxDPsi3 < minDeltaPsi
+                        mcols(nV_stored)$maxDPsi3 < minDeltaPsi &
+                        mcols(nV_stored)$maxDThetaDonor < minDeltaPsi &
+                        mcols(nV_stored)$maxDThetaAcceptor < minDeltaPsi
             
             nVJunctions <- rbind(nonVariableJunctions, nV_stored[toReport,])
             for(aname in assayNames(nVJunctions)){
